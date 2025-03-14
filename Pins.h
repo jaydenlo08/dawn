@@ -26,14 +26,6 @@
 #define IR_WHITE_3 0x1F
 #define IR_WHITE_4 0x1B
 
-// LCD PIN DEFINITION
-#define LCD_RS 13
-#define LCD_EN 12
-#define LCD_D4 11
-#define LCD_D5 10
-#define LCD_D6 9
-#define LCD_D7 8
-#define LCD_LED 7
 
 // ALARM
 #define ALARM_HOUR 6

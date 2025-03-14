@@ -1,13 +1,11 @@
 // Import
 #include <Adafruit_NeoPixel.h>
-#include <LiquidCrystal.h>
 #include <uRTCLib.h>
 #include <IRremote.hpp>
 #include "Pins.h"
 
 // Constants
 Adafruit_NeoPixel led(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 uRTCLib rtc(0x68);
 const char daysOfTheWeek[7][4] PROGMEM = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 struct IRCommand {
@@ -49,47 +47,21 @@ bool alarmRise = false;
 bool alarmShine = false;
 bool alarmActive = false;
 int oldSecond = 0;
-int displayWake = 0;
 uint8_t colour_current_array[3];
 int brightness = LED_BRIGHTNESS_DEFAULT;
 float t=0;
-int freeMemory() {
-  extern int __heap_start, *__brkval;
-  int v;
-  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
-}
 
 void setup() {
   Serial.begin(9600);
   URTCLIB_WIRE.begin();
   // Subtract 10s to upload
   //rtc.set(25, 40, 21, 1, 2, 3, 25); // 2025-01-11 06:29:57
-  lcd.begin(16,2);
-  lcd.clear();
   led.begin();
   led.setBrightness(brightness);
   ledOff();
   IrReceiver.begin(IR_RECEIVE_PIN, DISABLE_LED_FEEDBACK);
-  pinMode(LCD_LED, OUTPUT);
 }
 
-void printTime() {
-  //rtc.refresh();
-  char dayOfWeek[4];
-  strcpy_P(dayOfWeek, daysOfTheWeek[rtc.dayOfWeek() - 1]);
-  char dayString[13];
-  char timeString[9];
-  
-  snprintf(dayString, sizeof(dayString), "%s %02d/%02d/%02d",
-           dayOfWeek, rtc.day(), rtc.month(), rtc.year());
-  snprintf(timeString, sizeof(timeString), "%02d:%02d:%02d", rtc.hour(), rtc.minute(), rtc.second());
-
-  // Print the complete date and time
-  lcd.setCursor(0, 0);
-  lcd.print(dayString);
-  lcd.setCursor(0, 1);
-  lcd.print(timeString);
-}
 
 void sunrise(float t) {
   static uint8_t colour_init_array[3] = {255,0,0};
@@ -107,7 +79,6 @@ void sunrise(float t) {
     }
   } else {
     alarmActive = false;
-    digitalWrite(LCD_LED, LOW);
   }
   uint32_t colour_current = ((uint32_t)colour_current_array[0] << 16) | ((uint32_t)colour_current_array[1] << 8) | (uint32_t)colour_current_array[2];
   if (debug == true) {
@@ -125,7 +96,6 @@ void ledOff() {
   led.clear();
   led.show();
   alarmActive = false;
-  digitalWrite(LCD_LED, LOW);
 }
 
 void ledIR(uint16_t receivedCode) {
@@ -134,7 +104,6 @@ void ledIR(uint16_t receivedCode) {
     if (irCommands[i].code == receivedCode) {
       led.clear();
       selectedColor = irCommands[i].color;
-      digitalWrite(LCD_LED, HIGH);
       led.fill(selectedColor);
       led.show();
       break;
@@ -145,18 +114,9 @@ void ledIR(uint16_t receivedCode) {
 void loop() {
   rtc.refresh();
 
-  if ((rtc.second() - oldSecond == 1) || oldSecond - rtc.second() == 59 ) {    
-    // Every second
-    displayWake++;
-    if (displayWake == 10) {
-      // Every 10 second
-      displayWake = 0;
-      lcd.begin(16,2);
-    }
-    printTime();
+  if ((rtc.second() - oldSecond == 1) || oldSecond - rtc.second() == 59 ) {
     if ((rtc.hour() == ALARM_HOUR) && (rtc.minute() == ALARM_MINUTE)) {
       if (rtc.second() == 0) {
-        digitalWrite(LCD_LED, HIGH);
         alarmActive = true;
         t = LED_STEP;
       }
